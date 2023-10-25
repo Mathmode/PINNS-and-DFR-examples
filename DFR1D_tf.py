@@ -155,7 +155,7 @@ class loss(keras.layers.Layer):
         ##---------
         
         # Matrix for Sine transform
-        self.DST = np.array([[np.sqrt(2 / (b - a)) * np.sin(np.pi * k * (self.pts[i] - a) / (b - a)) * diff[i] 
+        DST = np.array([[np.sqrt(2 / (b - a)) * np.sin(np.pi * k * (self.pts[i] - a) / (b - a)) * diff[i] 
                               for i in range(len(self.pts))] for k in range(1, n_modes + 1)])
 
         # Matrix for Cosine transform
@@ -164,7 +164,7 @@ class loss(keras.layers.Layer):
 
         #self.f = f(self.pts)
 	# The source part (RHS) of the formulation 
-        self.FT_low = keras.ops.einsum("ji,i->j", self.DST, f(self.pts))
+        self.FT_low = keras.ops.einsum("ji,i->j", DST, f(self.pts))
         
     def call(self, inputs):
         """
