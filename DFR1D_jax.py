@@ -156,14 +156,16 @@ class loss(keras.layers.Layer):
         ##---------
         
         # Matrix for Sine transform
-        self.DST = jnp.array([[keras.ops.sqrt(2 / (b - a)) * keras.ops.sin(np.pi * k * (self.pts[i] - a) / (b - a)) * diff[i] 
+        DST = jnp.array([[keras.ops.sqrt(2 / (b - a)) * keras.ops.sin(np.pi * k * (self.pts[i] - a) / (b - a)) * diff[i] 
                               for i in range(len(self.pts))] for k in range(1, n_modes + 1)])
 
         # Matrix for Cosine transform
         self.DCT = jnp.array([[keras.ops.sqrt(2 / (b - a)) * (k * np.pi / (b - a)) * keras.ops.cos(np.pi * k * (self.pts[i] - a) / (b - a)) * diff[i] 
                               for i in range(len(self.pts))] for k in range(1, n_modes + 1)])
 
-        self.f = f 
+        #self.f = f 
+	# The RHS of the formulation
+        self.FT_low = keras.ops.einsum("ji,i->j", DST, f(self.pts))
         
     def call(self, inputs):
         """
@@ -183,15 +185,12 @@ class loss(keras.layers.Layer):
 
         ## Take appropriate transforms of each component
         FT_high = keras.ops.einsum("ji,i->j", self.DCT, du)
-        
-        # CHANGE HERE THE SOURCE: 
-        FT_low = keras.ops.einsum("ji,i->j", self.DST, self.f(self.pts))
 
         ## Add and multiply by weighting factors
-        FT_tot = (FT_high + FT_low) * self.coeffs
+        FT_tot = (FT_high + self.FT_low) * self.coeffs
 
         ## Return sum of squares loss
-        return keras.ops.mean(FT_tot**2)
+        return keras.ops.sum(FT_tot**2)
 
 
 ## Create a loss model
