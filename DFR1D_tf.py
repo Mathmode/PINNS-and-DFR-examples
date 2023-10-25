@@ -162,7 +162,9 @@ class loss(keras.layers.Layer):
         self.DCT = np.array([[np.sqrt(2 / (b - a)) * (k * np.pi / (b - a)) * np.cos(np.pi * k * (self.pts[i] - a) / (b - a)) * diff[i] 
                               for i in range(len(self.pts))] for k in range(1, n_modes + 1)])
 
-        self.f = f 
+        #self.f = f(self.pts)
+	# The source part (RHS) of the formulation 
+        self.FT_low = keras.ops.einsum("ji,i->j", self.DST, f(self.pts))
         
     def call(self, inputs):
         """
@@ -185,15 +187,12 @@ class loss(keras.layers.Layer):
 
         ## Take appropriate transforms of each component
         FT_high = keras.ops.einsum("ji,i->j", self.DCT, du)
-        
-        # CHANGE HERE THE SOURCE: 
-        FT_low = keras.ops.einsum("ji,i->j", self.DST, self.f(self.pts))
 
         ## Add and multiply by weighting factors
-        FT_tot = (FT_high + FT_low) * self.coeffs
+        FT_tot = (FT_high + self.FT_low) * self.coeffs
 
         ## Return sum of squares loss
-        return keras.ops.mean(FT_tot**2)
+        return keras.ops.sum(FT_tot**2)
 
 
 ## Create a loss model
