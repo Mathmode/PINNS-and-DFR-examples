@@ -24,4 +24,8 @@ https://www.sciencedirect.com/science/article/abs/pii/S0045782522008064
    
      - TODO:
   
+6. DFR Method with hybrid optimizer based on Least-squares solver.
+
+    - TODO: The vectorial derivatives need to be improved here and we are still missing the Jax version of it. 
+  
        
