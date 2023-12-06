@@ -10,22 +10,17 @@ https://www.sciencedirect.com/science/article/abs/pii/S0045782522008064
 1. PINNs_TF: PINNs basic code using TensorFlow backend.
    The implementation solves the Poisson problem using a NN architecture
    with a collocation method for the loss function.
-     - TODO:
 
 2. PINNs_jax: PINNs basic code using the JAX backend.
-     - TODO:
+3. PINNs_pytorch: PINNs basic code using the TORCH backend.
        
 4. DFR method in 1D  using TensorFlow backend.
    The implementation solves the Poisson problem using a NN architecture
    with a loss function based on the dual norm ($H^{-1}$) of the weak residual.
-     - TODO:
        
 5. DFR method in 1D  using Jax backend.
-   
-     - TODO:
   
 6. DFR Method with hybrid optimizer based on Least-squares solver.
-
     - TODO: The vectorial derivatives need to be improved here and we are still missing the Jax version of it. 
   
        
