@@ -124,7 +124,7 @@ class loss(keras.layers.Layer):
         error_PDE = keras.ops.mean((duxx-self.f(x))**2)
         
         ##Dirichlet BC loss
-        bc = u_model(np.array([np.pi]))**2 + u_model(np.array([0.]))**2
+        bc = self.u_model(np.array([np.pi]))**2 + self.u_model(np.array([0.]))**2
         return error_PDE + bc
     
 
