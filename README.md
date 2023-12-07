@@ -12,15 +12,17 @@ https://www.sciencedirect.com/science/article/abs/pii/S0045782522008064
    with a collocation method for the loss function.
 
 2. PINNs_jax: PINNs basic code using the JAX backend.
-3. PINNs_pytorch: PINNs basic code using the TORCH backend.
+   
+4. PINNs_pytorch: PINNs basic code using the TORCH backend.
+   - TODO: The results of this code are not as good as expected and different from the other implementations.
        
-4. DFR method in 1D  using TensorFlow backend.
+6. DFR method in 1D  using TensorFlow backend.
    The implementation solves the Poisson problem using a NN architecture
    with a loss function based on the dual norm ($H^{-1}$) of the weak residual.
        
-5. DFR method in 1D  using Jax backend.
+7. DFR method in 1D  using Jax backend.
   
-6. DFR Method with hybrid optimizer based on Least-squares solver.
+8. DFR Method with hybrid optimizer based on Least-squares solver.
     - TODO: The vectorial derivatives need to be improved here and we are still missing the Jax version of it. 
   
        
