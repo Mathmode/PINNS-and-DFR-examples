@@ -2,19 +2,19 @@
 '''
 Created on Oct 2023
 
-@authors:   Jamie Taylor (CUNEF) 
+@authors:   Jamie Taylor (CUNEF)
             Manuela Bastidas (UPV/EHU)
-            https://www.mathmode.science/ 
+            https://www.mathmode.science/
 '''
 
-# This code presents a simple implementation of the Deep Fourier Method, 
-# which can be seen as an specific instance of Variational Physics-Informed 
+# This code presents a simple implementation of the Deep Fourier Method,
+# which can be seen as an specific instance of Variational Physics-Informed
 # Neural Networks (VPINNs).   -- <50 lines of VPINNS--
 
-# In this 1D example, we utilize Keras_core for constructing neural networks 
-# and TF in the backend. 
-# This code serves as a basic introduction to the Deep Fourier Method and 
-# can be extended for more complex computational physics applications. 
+# In this 1D example, we utilize Keras_core for constructing neural networks
+# and TF in the backend.
+# This code serves as a basic introduction to the Deep Fourier Method and
+# can be extended for more complex computational physics applications.
 
 # This code uses the following weak-residual based loss:
     # int (grad u ).(grad v) - int f.v = R(u)
@@ -32,6 +32,7 @@ import os
 os.environ["KERAS_BACKEND"] = "tensorflow"
 
 import keras_core as keras
+import keras_core.ops as ops
 
 # Set the random seed
 keras.utils.set_random_seed(1234)
@@ -41,17 +42,17 @@ keras.backend.set_floatx(dtype)
 
 
 # =============================================================================
-# 
-#          Source code - DFR H01 1D 
+#
+#          Source code - DFR H01 1D
 #
 # =============================================================================
 
 
 ## Define an approximate solution (u_nn): A neural network model
 def make_model(neurons, n_layers, activation='tanh'):
-    
+
     """
-    Creates a neural network model to approximate the solution of 
+    Creates a neural network model to approximate the solution of
         int (grad u ).(grad v) - int f.v = 0
 
     Args:
@@ -61,14 +62,14 @@ def make_model(neurons, n_layers, activation='tanh'):
     Returns:
         keras.Model: A neural network model for the approximate solution.
     """
-    
+
 	# The input
     xvals = keras.layers.Input(shape=(1,), name='x_input',dtype=dtype)
 
     ## ---------------
     #  The dense layers
     ## ---------------
-    
+
     # First layer
     l1 = keras.layers.Dense(neurons, activation=activation, dtype=dtype)(xvals)
     for l in range(n_layers-2):
@@ -93,7 +94,7 @@ class cutoff_layer(keras.layers.Layer):
     def __init__(self, **kwargs):
         """
         Initializes the cutoff layer.
-        
+
         """
         super(cutoff_layer, self).__init__()
 
@@ -102,11 +103,11 @@ class cutoff_layer(keras.layers.Layer):
         Applies the cutoff operation to the last layer to impose boundary conditions.
 
         Args:
-            inputs: A tuple containing two tensors, x and u, where x represents 
+            inputs: A tuple containing two tensors, x and u, where x represents
                     spatial coordinates and u is the predicted solution.
 
         Returns:
-            keras.Tensor: A tensor representing the modified solution after 
+            keras.Tensor: A tensor representing the modified solution after
                           applying the cutoff.
         """
         x, u = inputs
@@ -114,7 +115,7 @@ class cutoff_layer(keras.layers.Layer):
         cut = x * (x - np.pi)
         # Compute the element-wise product of cut and u
         # This effectively enforces Dirichlet boundary condition u = 0 at x = pi
-        return keras.ops.einsum('ij,ij->i', cut, u)
+        return ops.einsum('ij,ij->i', cut, u)
 
 
 ## Deep Fourier Residual (DFR) loss function as a custom Keras layer
@@ -124,12 +125,12 @@ class loss(keras.layers.Layer):
         Initializes the DFR loss layer with provided parameters.
 
         Args:
-            u_model (keras.Model): The neural network model for the approximate 
+            u_model (keras.Model): The neural network model for the approximate
                                     solution.
             n_pts (int): Number of integration points.
             n_modes (int): Number of Fourier modes.
-            f (function): Source - RHS of the PDE 
-            
+            f (function): Source - RHS of the PDE
+
             kwargs: Additional keyword arguments.
         """
         super(loss, self).__init__()
@@ -138,34 +139,35 @@ class loss(keras.layers.Layer):
         # The domain is (0,pi) by default, include as input is the domain change
         b = np.pi
         a = 0
-        
-        # Generate integration points
-        hi_pts = np.linspace(a,b, n_pts+1)
 
-        diff = keras.ops.abs(hi_pts[1:] - hi_pts[:-1])
+        # Generate integration points
+        hi_pts = np.linspace(a, b, n_pts+1)
+
+        diff = ops.abs(hi_pts[1:] - hi_pts[:-1])
         self.pts = hi_pts[:-1] + diff / 2
 
         # Generate weights based on H^1_0 norm with no L2 component
-        self.coeffs = np.array([((np.pi**2 * k**2) / (b - a)**2)**-0.5 
+        self.coeffs = np.array([((np.pi**2 * k**2) / (b - a)**2)**-0.5
                                 for k in range(1, n_modes + 1)])
 
         ##----------
         # NOTE: The DST and DCT are computed explicitly here
-        # To improve: Use the fast DST of python 
+        # To improve: Use the fast DST of python
         ##---------
-        
+
         # Matrix for Sine transform
-        DST = np.array([[np.sqrt(2 / (b - a)) * np.sin(np.pi * k * (self.pts[i] - a) / (b - a)) * diff[i] 
-                              for i in range(len(self.pts))] for k in range(1, n_modes + 1)])
+        V = np.sqrt(2./(b-a))
+        DST = np.array([V*np.sin(np.pi*k*(self.pts-a)/(b-a))*diff
+                                                 for k in range(1, n_modes+1)])
 
         # Matrix for Cosine transform
-        self.DCT = np.array([[np.sqrt(2 / (b - a)) * (k * np.pi / (b - a)) * np.cos(np.pi * k * (self.pts[i] - a) / (b - a)) * diff[i] 
-                              for i in range(len(self.pts))] for k in range(1, n_modes + 1)])
+        self.DCT = np.array([V*(k*np.pi/(b-a))*np.cos(np.pi*k*(self.pts-a)/(b-a))*diff
+                                                 for k in range(1, n_modes+1)])
 
         #self.f = f(self.pts)
-	# The source part (RHS) of the formulation 
+	# The source part (RHS) of the formulation
         self.FT_low = keras.ops.einsum("ji,i->j", DST, f(self.pts))
-        
+
     def call(self, inputs):
         """
         Computes the Deep Fourier Regularization (DFR) loss.
@@ -177,7 +179,7 @@ class loss(keras.layers.Layer):
             keras.Tensor: The DFR loss value.
         """
         ## Evaluate u and its derivative at integration points
-        
+
         # Evaluate u and its derivative at integration points
         ## Persistent True not necessary because it only evaluates u'(once)
         with tf.GradientTape() as t1:
@@ -209,14 +211,14 @@ def make_loss_model(u_model, n_pts, n_modes, f):
         keras.Model: A model with the DFR loss function.
     """
     xvals = keras.layers.Input(shape=(1,), name='x_input', dtype=dtype)
-    
-    # Compute the DFR loss using the provided neural network and 
+
+    # Compute the DFR loss using the provided neural network and
     # integration parameters
     output = loss(u_model, n_pts, n_modes, f)(xvals)
 
     # Create a Keras model for the DFR loss
     loss_model = keras.Model(inputs=xvals, outputs=output)
-    
+
     return loss_model
 
 
@@ -231,23 +233,23 @@ def tricky_loss(y_pred, y_true):
     Returns:
         float: The loss value.
     """
-    # This is a placeholder loss function that can be substituted with a 
+    # This is a placeholder loss function that can be substituted with a
     # custom loss if required.
     return y_true
 
 # =============================================================================
-# 
+#
 #          Example 1 - Inputs
 #
 # =============================================================================
 
-# PDE RHS 
+# PDE RHS
 def f_rhs(x):
    return -4*keras.ops.sin(2 * x)
 
 # Number of neurons per hidden layer in the neural network
 nn = 10
-# Number of hidden layers 
+# Number of hidden layers
 nl = 4
 # Number of integration points
 n_pts = 100
@@ -268,7 +270,7 @@ optimizer = keras.optimizers.Adam(learning_rate=10**-3)
 # Compile the loss model with a custom loss function (tricky_loss)
 loss_model.compile(optimizer=optimizer, loss=tricky_loss)
 
-# Train the model using a single training data point ([1.], [1.]) for a 
+# Train the model using a single training data point ([1.], [1.]) for a
 # specified number of epochs (iterations)
 history = loss_model.fit(np.array([1.]), np.array([1.]), epochs=iterations)
 
@@ -283,7 +285,7 @@ from matplotlib import rcParams
 rcParams['font.family'] = 'serif'
 rcParams['font.size'] = 18
 rcParams['legend.fontsize'] = 17
-rcParams['mathtext.fontset'] = 'cm' 
+rcParams['mathtext.fontset'] = 'cm'
 rcParams['axes.labelsize'] = 19
 
 # Exact solution
