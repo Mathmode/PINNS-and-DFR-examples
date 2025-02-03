@@ -70,7 +70,7 @@ def make_model(neurons, n_layers, activation='tanh'):
         # Hidden layers
         l1 = keras.layers.Dense(neurons, activation=activation, dtype=dtype)(l1)
     # Last layer
-    output = keras.layers.Dense(1, activation=activation, dtype=dtype)(l1)
+    output = keras.layers.Dense(1, activation=None, dtype=dtype)(l1)
 
     u_model = keras.Model(inputs = xvals, outputs = output, name='u_model')
 
